@@ -26,9 +26,17 @@ test("product cards and details link directly to the product without a customer 
   assert.doesNotMatch(html, /id="(?:mReg|mProf|mConf|pgCrm|userBtn|crmBtn)"/);
 });
 
-test("cart checkout opens the selected product link directly", () => {
+test("storefront has no cart and product cards expose only direct purchase", () => {
+  assert.doesNotMatch(html, /cartBtn|mCart|cartList|checkout|Carrinho|Adicionar ao carrinho|data-a=/i);
+  assert.doesNotMatch(html, /<button[^>]*>Adicionar<\/button>/i);
+  assert.match(html, /<div class="row">\$\{url\?`<a class="btn" href="\$\{esc\(url\)\}" target="_blank" rel="noopener sponsored">Comprar agora/);
+});
+
+test("admin panel requires eight consecutive logo clicks and retains backend login", () => {
   assert.match(
     html,
-    /const p=cart\.find\(x=>x\.id===sel\),url=Storefront\.purchaseUrl\(p\);[\s\S]*?window\.open\(url,"_blank","noopener,noreferrer"\)/,
+    /tm=setTimeout\(\(\)=>clicks=0,1500\);if\(clicks<8\)return/,
   );
+  assert.match(html, /apiRequest\("\/api\/admin\/login"/);
+  assert.match(html, /apiRequest\("\/api\/admin\/session"/);
 });
