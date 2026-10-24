@@ -21,12 +21,13 @@ header{position:sticky;top:env(safe-area-inset-top,0px);display:flex;align-items
 .availability{font-size:11px;color:var(--mut)}.availability.unavailable{color:#e08b7c}.product-sizes{font-size:12px;color:var(--mut)}
 #tabs,#grid{scroll-margin-top:86px}
 @media(max-width:700px){.mobile-menu{display:block}}
+@media(max-width:700px){.hero{min-height:400px;background-position:center top,center,center 42%}}
 button{font:inherit;cursor:pointer}
 .btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700;background:var(--grad);color:#1a1206;transition:transform .15s,filter .15s}
 .btn{text-decoration:none;text-align:center}
 .btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
 .btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--bd)}.btn.ghost:hover{border-color:var(--ac)}
-.hero{position:relative;text-align:center;padding:56px 20px 4px;overflow:hidden;background:radial-gradient(600px 280px at 50% 0,rgba(212,169,79,.22),transparent 70%)}
+.hero{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:clamp(340px,34vw,440px);text-align:center;padding:56px 20px 48px;overflow:hidden;background-image:radial-gradient(600px 280px at 50% 0,rgba(212,169,79,.14),transparent 70%),linear-gradient(rgba(11,11,12,.68),rgba(11,11,12,.74)),url("banner-moda-masculina.jpg");background-position:center top,center,center 42%;background-size:600px 280px,cover,cover;background-repeat:no-repeat}
 .kicker{letter-spacing:.35em;font-size:11px;color:var(--ac);margin-bottom:14px}
 .hero h1{margin:0 0 12px;font-size:clamp(32px,8vw,60px);line-height:1.05;font-weight:800;letter-spacing:-.02em}
 .hero h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
