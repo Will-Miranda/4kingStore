@@ -29,7 +29,24 @@ test("product cards and details link directly to the product without a customer 
 test("storefront has no cart and product cards expose only direct purchase", () => {
   assert.doesNotMatch(html, /cartBtn|mCart|cartList|checkout|Carrinho|Adicionar ao carrinho|data-a=/i);
   assert.doesNotMatch(html, /<button[^>]*>Adicionar<\/button>/i);
-  assert.match(html, /<div class="row">\$\{url\?`<a class="btn" href="\$\{esc\(url\)\}" target="_blank" rel="noopener sponsored">Comprar agora/);
+  assert.match(html, /<div class="row">\$\{url&&available\?`<a class="btn" href="\$\{esc\(url\)\}" target="_blank" rel="noopener sponsored">Comprar agora/);
+  assert.doesNotMatch(html, /localStorage|legacyProducts|legacyMigration/);
+});
+
+test("storefront provides a mobile menu and product availability fields", () => {
+  assert.match(html, /aria-controls="mobileNav"/);
+  assert.match(html, /data-menu-action="categories"/);
+  assert.match(html, /data-menu-action="products"/);
+  assert.match(html, /id="psizes"/);
+  assert.match(html, /id="pavailable"/);
+  assert.match(html, /available=p\.available!==false/);
+});
+
+test("admin product database exposes XLSX import and export", () => {
+  assert.match(html, /\/api\/products\/export/);
+  assert.match(html, /\/api\/products\/import/);
+  assert.match(html, /Importar produtos \(\.xlsx\)/);
+  assert.match(html, /Exportar produtos para Excel \(\.xlsx\)/);
 });
 
 test("admin panel requires eight consecutive logo clicks and retains backend login", () => {

@@ -5,13 +5,17 @@ const { randomBytes } = require("node:crypto");
 
 process.env.ADMIN_PASSWORD ||= randomBytes(32).toString("base64url");
 process.env.ADMIN_SESSION_SECRET ||= randomBytes(48).toString("base64url");
-process.env.BLOB_READ_WRITE_TOKEN = "token-falso-apenas-para-testes";
+process.env.SUPABASE_URL = "https://example.supabase.co";
+process.env.SUPABASE_SERVICE_ROLE_KEY = "token-falso-apenas-para-testes";
 delete process.env.VERCEL;
 
 const login = require("../api/admin/login");
 const session = require("../api/admin/session");
 const products = require("../api/products");
+const exportProducts = require("../api/products/export");
+const importProducts = require("../api/products/import");
 const upload = require("../api/upload");
+const { createProductsWorkbook } = require("../lib/excel");
 const { verifySessionToken } = require("../lib/api");
 
 function mockResponse() {
@@ -87,6 +91,32 @@ test("catalog and image writes reject requests without an admin session", async 
 
   assert.equal(productRes.statusCode, 401);
   assert.equal(uploadRes.statusCode, 401);
+});
+
+test("XLSX import and export reject requests without an admin session", async () => {
+  const exportRes = await call(exportProducts, request({ method: "GET" }));
+  const importRes = await call(importProducts, request({ method: "POST" }));
+
+  assert.equal(exportRes.statusCode, 401);
+  assert.equal(importRes.statusCode, 401);
+});
+
+test("XLSX import rejects duplicate products before writing to Supabase", async () => {
+  const loginRes = mockResponse();
+  login(request({ password: process.env.ADMIN_PASSWORD }), loginRes);
+  const cookie = loginRes.headers["set-cookie"].split(";")[0];
+  const workbook = await createProductsWorkbook([
+    { id: 1, n: "Camisa", d: "", p: 50, c: "Camisas", l: "https://br.shein.com/item/1", g: [], sizes: [], available: true },
+    { id: 2, n: "Camisa", d: "", p: 60, c: "Camisas", l: "https://br.shein.com/item/2", g: [], sizes: [], available: true },
+  ]);
+  const req = request({ method: "POST", cookie });
+  req.body = {
+    file: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${workbook.toString("base64")}`,
+  };
+  const res = await call(importProducts, req);
+
+  assert.equal(res.statusCode, 409);
+  assert.match(res.body.error, /Produto duplicado na planilha/);
 });
 
 test("catalog and image writes reject cross-origin requests", async () => {

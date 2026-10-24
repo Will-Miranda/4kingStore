@@ -6,9 +6,14 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "seed:catalog": "node scripts/seed-embedded-products.js"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.2"
+    "@supabase/supabase-js": "^2.118.0",
+    "exceljs": "^4.4.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

@@ -1,6 +1,6 @@
-const { put } = require("@vercel/blob");
-const { readJsonBody, requireAdmin, sameOrigin, sendJson } = require("../lib/api");
 const { randomUUID } = require("node:crypto");
+const { readJsonBody, requireAdmin, sameOrigin, sendJson } = require("../lib/api");
+const { getStorageBucket, getSupabaseClient, supabaseConfigurationError } = require("../lib/supabase");
 
 const MAX_IMAGE_BYTES = 2_000_000;
 
@@ -9,13 +9,12 @@ module.exports = async function handler(req, res) {
     res.setHeader("Allow", "POST");
     return sendJson(res, 405, { error: "Método não permitido." });
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return sendJson(res, 503, { error: "Configure BLOB_READ_WRITE_TOKEN na Vercel." });
-  }
   if (!sameOrigin(req)) {
     return sendJson(res, 403, { error: "Origem da solicitação não autorizada." });
   }
   if (!requireAdmin(req, res)) return;
+  const configError = supabaseConfigurationError();
+  if (configError) return sendJson(res, 503, { error: configError });
 
   let image;
   try {
@@ -36,18 +35,19 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const blob = await put(
-      `4kings-store/products/${randomUUID()}.jpg`,
-      bytes,
-      {
-        access: "public",
-        addRandomSuffix: true,
-        contentType: "image/jpeg",
-      },
-    );
-    return sendJson(res, 201, { url: blob.url });
+    const client = getSupabaseClient();
+    const path = `products/${randomUUID()}.jpg`;
+    const { error } = await client.storage.from(getStorageBucket()).upload(path, bytes, {
+      cacheControl: "31536000",
+      contentType: "image/jpeg",
+      upsert: false,
+    });
+    if (error) throw error;
+    const { data } = client.storage.from(getStorageBucket()).getPublicUrl(path);
+    if (!data?.publicUrl) throw new Error("Supabase não retornou uma URL pública da imagem.");
+    return sendJson(res, 201, { url: data.publicUrl });
   } catch (error) {
-    console.error("Falha ao enviar imagem para o Blob.", error);
-    return sendJson(res, 502, { error: "Não foi possível armazenar a imagem na nuvem." });
+    console.error("Falha ao enviar imagem para o Supabase Storage.", error);
+    return sendJson(res, 502, { error: "Não foi possível armazenar a imagem permanentemente." });
   }
 };
