@@ -1,0 +1,14 @@
+{
+  "name": "4-kings-store",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.8.2"
+  }
+}
