@@ -42,6 +42,27 @@ test("storefront provides a mobile menu and product availability fields", () => 
   assert.match(html, /available=p\.available!==false/);
 });
 
+test("catalog displays eight products at a time with a centered load-more divider", () => {
+  assert.match(html, /id="loadMore" hidden/);
+  assert.match(html, /id="loadMoreButton" type="button">Ver mais<\/button>/);
+  assert.match(html, /visibleProducts=8/);
+  assert.match(html, /categoryProducts\.slice\(0,visibleProducts\)/);
+  assert.match(html, /\$\(\"\#loadMore\"\)\.hidden=visibleList\.length>=categoryProducts\.length/);
+  assert.match(html, /visibleProducts\+=8;render\(\)/);
+  assert.match(html, /cat=b\.dataset\.c;visibleProducts=8;render\(\)/);
+  assert.match(html, /\.load-more::before,\.load-more::after/);
+  assert.match(html, /@media\(max-width:700px\)\{\.grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
+});
+
+test("mobile category row expands four categories at a time with an ellipsis control", () => {
+  assert.match(html, /visibleCategories=4/);
+  assert.match(html, /cats\.slice\(0,mobileCategories\?visibleCategories:cats\.length\)/);
+  assert.match(html, /class="category-more" id="categoryMore" type="button" aria-label="Mostrar mais categorias"/);
+  assert.match(html, /visibleCategories=Math\.min\(cats\.length,visibleCategories\+4\);render\(\)/);
+  assert.match(html, /@media\(max-width:700px\)\{\.tabs \.category-more\{display:block\}\}/);
+  assert.match(html, /\.tabs \.category-more\{display:none/);
+});
+
 test("admin product database exposes XLSX import and export", () => {
   assert.match(html, /\/api\/products\/export/);
   assert.match(html, /\/api\/products\/import/);
