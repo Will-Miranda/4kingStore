@@ -42,8 +42,7 @@ button{font:inherit;cursor:pointer}
 .tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 18px 18px;max-width:1100px;margin:auto;scrollbar-width:none}
 .tabs button{white-space:nowrap;background:transparent;border:1px solid var(--bd);color:var(--mut);border-radius:999px;padding:8px 16px}
 .tabs button.on{background:var(--grad);color:#1a1206;border-color:transparent;font-weight:700}
-.tabs .category-more{display:none;flex:0 0 auto;width:38px;padding:6px;font-size:20px;line-height:1}
-@media(max-width:700px){.tabs .category-more{display:block}}
+.tabs .category-more{display:block;flex:0 0 auto;width:38px;padding:6px;font-size:20px;line-height:1}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:16px;padding:0 18px 48px;max-width:1100px;margin:auto}
 @media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .load-more{max-width:1100px;margin:-30px auto 42px;padding:0 18px;display:flex;align-items:center;gap:14px;color:var(--mut);font-size:13px}
@@ -151,7 +150,7 @@ const SEED=[
 const usableImage=s=>typeof s==="string"&&s.length<=2048&&/^https:\/\//i.test(s);
 const normalizeProduct=p=>{const g=(Array.isArray(p.g)?p.g:[]).filter(usableImage);const i=usableImage(p.i)?p.i:(g[0]||"");return {...p,g,i,sizes:Array.isArray(p.sizes)?p.sizes:[],available:p.available!==false}};
 const embeddedProds=Array.isArray(EMB.prods)?EMB.prods:SEED;
-let prods=embeddedProds.map(normalizeProduct),cat="Todos",adminAuth=false,visibleProducts=8,visibleCategories=4;
+let prods=embeddedProds.map(normalizeProduct),cat="Todos",adminAuth=false,visibleProducts=8,visibleCategories=4,catalogResetArmed=false,lastCatalogScrollY=window.scrollY;
 let cloudSnapshot=JSON.stringify(prods);
 async function apiRequest(path,options={}){
  const headers={...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})};
@@ -181,21 +180,26 @@ $("#mobileNav").querySelectorAll("[data-menu-action]").forEach(link=>link.onclic
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest(".modal").classList.remove("on"));
 function render(){
  const cats=["Todos",...new Set(prods.map(p=>p.c))];
- const mobileCategories=window.matchMedia("(max-width:700px)").matches;
- const shownCats=cats.slice(0,mobileCategories?visibleCategories:cats.length);
- if(mobileCategories&&cat!=="Todos"&&!shownCats.includes(cat)){shownCats[shownCats.length-1]=cat}
- $("#tabs").innerHTML=shownCats.map(c=>`<button class="${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("")+(mobileCategories&&shownCats.length<cats.length?'<button class="category-more" id="categoryMore" type="button" aria-label="Mostrar mais categorias" title="Mostrar mais categorias">…</button>':"");
- $("#tabs").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{cat=b.dataset.c;visibleProducts=8;render()});
+ const shownCats=cats.slice(0,visibleCategories);
+ if(cat!=="Todos"&&!shownCats.includes(cat)){shownCats[shownCats.length-1]=cat}
+ $("#tabs").innerHTML=shownCats.map(c=>`<button class="${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("")+(shownCats.length<cats.length?'<button class="category-more" id="categoryMore" type="button" aria-label="Mostrar mais categorias" title="Mostrar mais categorias">…</button>':"");
+ $("#tabs").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{cat=b.dataset.c;if(cat==="Todos")visibleCategories=4;visibleProducts=8;catalogResetArmed=false;render()});
  const categoryMore=$("#categoryMore");
  if(categoryMore)categoryMore.onclick=()=>{visibleCategories=Math.min(cats.length,visibleCategories+4);render()};
  const categoryProducts=gridList(),visibleList=categoryProducts.slice(0,visibleProducts);
- $("#grid").innerHTML=visibleList.map(p=>{const url=Storefront.purchaseUrl(p),available=p.available!==false;return `<div class="card"><div class="ph"${(p.g||[]).length>1?` data-g="${p.id}" style="position:relative;cursor:pointer"`:""}>${p.i?`<img src="${esc(p.i)}" style="width:100%;height:100%;object-fit:cover" alt="">`:esc(p.e)}${(p.g||[]).length>1?`<span class="gb">1/${p.g.length}</span>`:""}</div><div class="in"><h3>${esc(p.n)}</h3>${p.d?`<div class="sm">${esc(p.d)}</div>`:""}${p.sizes&&p.sizes.length?`<div class="product-sizes">Tamanhos: ${esc(p.sizes.join(", "))}</div>`:""}${!available?`<div class="availability unavailable">Indisponível</div>`:""}<div class="pr">${money(p.p)}</div><div class="row">${url&&available?`<a class="btn" href="${esc(url)}" target="_blank" rel="noopener sponsored">Comprar agora</a>`:""}</div></div></div>`}).join("");
+ const gridColumns=getComputedStyle($("#grid")).gridTemplateColumns.split(/\s+/).filter(Boolean).length||1;
+ renderedGridColumns=gridColumns;
+ const fillCount=visibleProducts>8&&categoryProducts.length===visibleList.length&&visibleList.length>0
+  ?(gridColumns-visibleList.length%gridColumns)%gridColumns
+  :0;
+ const gridProducts=fillCount?[...visibleList,...Array.from({length:fillCount},()=>categoryProducts[0])]:visibleList;
+ $("#grid").innerHTML=gridProducts.map((p,index)=>{const url=Storefront.purchaseUrl(p),available=p.available!==false,filler=index>=visibleList.length;return `<div class="card"${filler?' data-grid-filler="true" aria-hidden="true"':""}><div class="ph"${(p.g||[]).length>1?` data-g="${p.id}" style="position:relative;cursor:pointer"`:""}>${p.i?`<img src="${esc(p.i)}" style="width:100%;height:100%;object-fit:cover" alt="">`:esc(p.e)}${(p.g||[]).length>1?`<span class="gb">1/${p.g.length}</span>`:""}</div><div class="in"><h3>${esc(p.n)}</h3>${p.d?`<div class="sm">${esc(p.d)}</div>`:""}${p.sizes&&p.sizes.length?`<div class="product-sizes">Tamanhos: ${esc(p.sizes.join(", "))}</div>`:""}${!available?`<div class="availability unavailable">Indisponível</div>`:""}<div class="pr">${money(p.p)}</div><div class="row">${url&&available?`<a class="btn" href="${esc(url)}" target="_blank" rel="noopener sponsored"${filler?' tabindex="-1"':""}>Comprar agora</a>`:""}</div></div></div>`}).join("");
  $("#loadMore").hidden=visibleList.length>=categoryProducts.length;
  $("#grid").querySelectorAll("[data-g]").forEach(d=>{let k=0;d.onclick=e=>{const r=d.getBoundingClientRect(),p=prods.find(x=>x.id==d.dataset.g);k=(k+(e.clientX-r.left>r.width/2?1:-1)+p.g.length)%p.g.length;swapImg(d,p.g[k]);[1,-1].forEach(z=>{new Image().src=p.g[(k+z+p.g.length)%p.g.length]});d.querySelector(".gb").textContent=(k+1)+"/"+p.g.length}});
 }
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),1400)}
-let categoryMobileMode=window.matchMedia("(max-width:700px)").matches;
-window.addEventListener("resize",()=>{const nextMobileMode=window.matchMedia("(max-width:700px)").matches;if(nextMobileMode===categoryMobileMode)return;categoryMobileMode=nextMobileMode;visibleCategories=4;if(nextMobileMode&&cat!=="Todos"){const activeIndex=["Todos",...new Set(prods.map(p=>p.c))].indexOf(cat);visibleCategories=Math.max(visibleCategories,activeIndex+1)}render()});
+let categoryMobileMode=window.matchMedia("(max-width:700px)").matches,renderedGridColumns=0;
+window.addEventListener("resize",()=>{const nextMobileMode=window.matchMedia("(max-width:700px)").matches,nextGridColumns=getComputedStyle($("#grid")).gridTemplateColumns.split(/\s+/).filter(Boolean).length||1;if(nextMobileMode===categoryMobileMode&&nextGridColumns===renderedGridColumns)return;categoryMobileMode=nextMobileMode;visibleCategories=4;if(nextMobileMode&&cat!=="Todos"){const activeIndex=["Todos",...new Set(prods.map(p=>p.c))].indexOf(cat);visibleCategories=Math.max(visibleCategories,activeIndex+1)}render()});
 let clicks=0,tm;
 $("#logo").onclick=async()=>{clicks++;clearTimeout(tm);tm=setTimeout(()=>clicks=0,1500);if(clicks<8)return;clicks=0;$("#admLogin").style.display="block";$("#admPanel").style.display="none";$("#admErr").textContent="";$("#ap").value="";open("#mAdm");try{const d=await apiRequest("/api/admin/session");if(d.authenticated){adminAuth=true;$("#admLogin").style.display="none";$("#admPanel").style.display="block";if(!await loadCloudProducts())$("#cloudStatus").textContent="Não foi possível carregar o catálogo remoto.";admRender()}}catch(e){$("#admErr").textContent=e.message}};
 $("#admGo").onclick=async()=>{const b=$("#admGo");b.disabled=true;$("#admErr").textContent="";try{await apiRequest("/api/admin/login",{method:"POST",body:{password:$("#ap").value}});adminAuth=true;$("#ap").value="";$("#admLogin").style.display="none";$("#admPanel").style.display="block";$("#cloudStatus").textContent="Conectando ao catálogo na nuvem...";if(!await loadCloudProducts(true))$("#cloudStatus").textContent="Não foi possível carregar o catálogo remoto.";admRender()}catch(e){console.error("Falha no login do administrador.",e);$("#admErr").textContent=e.message}finally{b.disabled=false}};
@@ -257,7 +261,20 @@ function gridList(){
  const l=prods.filter(p=>cat==="Todos"||p.c===cat);
  return l;
 }
-$("#loadMoreButton").onclick=()=>{visibleProducts+=8;render()};
+$("#loadMoreButton").onclick=()=>{visibleProducts+=8;catalogResetArmed=false;render()};
+window.addEventListener("scroll",()=>{
+ const scrollY=window.scrollY,gridBottom=$("#grid").getBoundingClientRect().bottom+scrollY;
+ const categoryProducts=gridList(),allProductsShown=categoryProducts.length>0&&Math.min(visibleProducts,categoryProducts.length)===categoryProducts.length;
+ if(scrollY>lastCatalogScrollY&&allProductsShown&&scrollY+window.innerHeight>=gridBottom-1)catalogResetArmed=true;
+ if(catalogResetArmed&&scrollY<=1){
+  catalogResetArmed=false;
+  const resetProducts=visibleProducts>8,resetCategories=visibleCategories>4;
+  if(resetProducts)visibleProducts=8;
+  if(resetCategories)visibleCategories=4;
+  if(resetProducts||resetCategories)render();
+ }
+ lastCatalogScrollY=scrollY;
+},{passive:true});
 let cI=0,cN=0,cPause=false;
 function carBuild(){
  const t=$("#trk");if(!t||!prods.length)return;
