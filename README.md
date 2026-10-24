@@ -27,7 +27,9 @@ O conteúdo público do catálogo pode levar até 60 segundos para sair do cache
 
 A autenticação administrativa usa cookie assinado, `HttpOnly`, `SameSite=Strict` e expiração de 8 horas. As rotas de escrita exigem essa sessão e a origem do próprio site. O token Blob e as credenciais não são enviados ao navegador.
 
-Os cadastros, perfis, CRM e histórico de compras existentes continuam armazenados no `localStorage` do navegador; esta API sincroniza apenas catálogo e imagens. Não use esses recursos locais como banco de clientes ou histórico de pedidos compartilhado.
+Visitantes não precisam criar conta nem fazer login. Os botões **Comprar agora** abrem diretamente o link de afiliado do produto na Shein; o carrinho continua disponível como atalho para comprar o produto selecionado. A loja não coleta dados de clientes, mantém CRM ou registra histórico de pedidos. A compra e o pagamento são realizados no site externo da Shein, sem confirmação de pedido nesta loja.
+
+Dados de cadastro e compras que tenham sido gravados no `localStorage` por versões anteriores não são mais carregados pela loja nem apagados automaticamente do navegador. A API da Vercel continua sincronizando apenas catálogo e imagens.
 
 ## Testes
 
